@@ -5,6 +5,8 @@
 // the disaster a refactor.
 // Node 22+, standard library only. Deterministic: identical bytes on
 // every run, so the output can be reproduced and re-checked.
+// Validation lives in assertValidEntry: length (1–200 chars), not
+// blank, single line — the entry's own contract, enforced before write.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -24,8 +26,10 @@ function buildLine(): string {
   return `${RESEARCH}, ${APOLOGY}, ${MISTAKE} ${PUNCHLINE}`;
 }
 
-function main(): void {
-  const line = buildLine();
+// Throws when the entry breaks a submission rule (length, blank,
+// or multi-line). Kept separate from the builder so the validation
+// contract is explicit and independently checkable.
+function assertValidEntry(line: string): number {
   const chars = [...line].length;
 
   if (chars < MIN_CHARS || chars > MAX_CHARS) {
@@ -37,6 +41,12 @@ function main(): void {
   if (/[\r\n]/.test(line)) {
     throw new Error("entry must be a single line");
   }
+  return chars;
+}
+
+function main(): void {
+  const line = buildLine();
+  const chars = assertValidEntry(line);
 
   const outDir = process.env.MAKEFUN_OUTPUT_DIR || "/output";
   mkdirSync(outDir, { recursive: true });
